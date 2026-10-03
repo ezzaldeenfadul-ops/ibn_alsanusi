@@ -378,6 +378,31 @@ export async function upsertInvoiceToSupabase(invoice: Invoice): Promise<boolean
   }
 }
 
+export async function deleteInvoiceFromSupabase(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('Supabase deleteInvoice error:', err);
+    return false;
+  }
+}
+
+export async function clearAllInvoicesFromSupabase(): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('invoices').delete().neq('id', '___NEVER_MATCH___');
+    if (error) throw error;
+    try {
+      await supabase.from('inventory_logs').delete().eq('change_type', 'sale');
+    } catch {}
+    return true;
+  } catch (err) {
+    console.warn('Supabase clearAllInvoices error:', err);
+    return false;
+  }
+}
+
 // تسجيل حركة المخزون في السحابة
 export async function recordInventoryLogToSupabase(log: {
   productId?: string;

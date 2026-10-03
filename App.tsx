@@ -22,20 +22,18 @@ import {
   upsertCustomerToSupabase,
   upsertSupplierToSupabase,
   upsertInvoiceToSupabase,
+  deleteInvoiceFromSupabase,
+  clearAllInvoicesFromSupabase,
   upsertPurchaseOrderToSupabase,
   recordInventoryLogToSupabase
 } from './supabaseService';
 import { supabase, SUPABASE_PROJECT_NAME } from './supabase';
 import { getCurrentSupabaseUser, signOutFromSupabase } from './authService';
 
-// تنظيف وتفريغ أي بيانات وهمية سابقة مخزنة محلياً لضمان قاعدة بيانات فارغة ونظيفة
-if (typeof window !== 'undefined' && localStorage.getItem('erp_clean_production_v2') !== 'true') {
-  localStorage.removeItem('erp_products');
+// تنظيف وتفريغ أي معاملات بيع أو فواتير سابقة لضمان بدء النظام نظيفاً تماماً
+if (typeof window !== 'undefined' && localStorage.getItem('erp_clean_invoices_wiped_v1') !== 'true') {
   localStorage.removeItem('erp_invoices');
-  localStorage.removeItem('erp_customers');
-  localStorage.removeItem('erp_suppliers');
-  localStorage.removeItem('erp_purchase_orders');
-  localStorage.setItem('erp_clean_production_v2', 'true');
+  localStorage.setItem('erp_clean_invoices_wiped_v1', 'true');
 }
 
 const App: React.FC = () => {
@@ -281,6 +279,23 @@ const App: React.FC = () => {
     upsertPurchaseOrderToSupabase(updatedOrder).catch(() => {});
   };
 
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    const updated = invoices.filter(i => i.id !== invoiceId);
+    setInvoices(updated);
+    try {
+      localStorage.setItem('erp_invoices', JSON.stringify(updated));
+    } catch {}
+    await deleteInvoiceFromSupabase(invoiceId);
+  };
+
+  const handleClearAllInvoices = async () => {
+    setInvoices([]);
+    try {
+      localStorage.removeItem('erp_invoices');
+    } catch {}
+    await clearAllInvoicesFromSupabase();
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
@@ -290,7 +305,11 @@ const App: React.FC = () => {
       case 'pos':
         return <POS products={products} customers={customers} onSaveInvoice={handleSaveInvoice} onNavigateToInvoices={() => setCurrentView('invoices')} currentUser={currentUser} />;
       case 'invoices':
-        return <Invoices invoices={invoices} />;
+        return <Invoices 
+          invoices={invoices} 
+          onDeleteInvoice={handleDeleteInvoice} 
+          onClearAllInvoices={handleClearAllInvoices} 
+        />;
       case 'customers':
         return <Customers customers={customers} onAddCustomer={handleAddCustomer} />;
       case 'purchases':
