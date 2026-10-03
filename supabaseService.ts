@@ -283,6 +283,14 @@ export async function upsertProductToSupabase(product: Product): Promise<boolean
 
 export async function deleteProductFromSupabase(id: string): Promise<boolean> {
   try {
+    // حذف أي سجلات مرتبطة بالمنتج في جدول حركة المخزون أولاً
+    try {
+      await supabase.from('inventory_logs').delete().eq('product_id', id);
+    } catch {
+      // تجاوز في حال عدم وجود الجدول
+    }
+
+    // حذف المنتج نهائياً من قاعدة البيانات
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) throw error;
     return true;
