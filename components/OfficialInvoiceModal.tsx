@@ -33,11 +33,11 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
 
   // QR Code details
   const qrSvgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(
-    `شركة ابن السنوسي للطاقة\n${isProforma ? 'فاتورة مبدئية / عرض سعر' : 'فاتورة ضريبية رسمية'}\nرقم: ${invoice.id}\nالتاريخ: ${invoice.date} ${invoice.time || ''}\nالعميل: ${invoice.customerName}\nالإجمالي: ${invoice.total} ج.س`
+    `ابن السنوسي للحلول المتكاملة\n${isProforma ? 'فاتورة مبدئية / عرض سعر' : 'فاتورة بيع رسمية'}\nرقم: ${invoice.id}\nالتاريخ: ${invoice.date} ${invoice.time || ''}\nالعميل: ${invoice.customerName}\nالإجمالي: ${invoice.total} ج.س\nالهاتف: +249900009596`
   )}`;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 overflow-y-auto">
       {/* Container */}
       <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden my-auto animate-fade-in flex flex-col max-h-[96vh]">
         {/* Top Action Toolbar (Hidden during print) */}
@@ -50,15 +50,15 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
               <h3 className="font-bold text-sm sm:text-base text-white flex items-center gap-2">
                 <span>{isProforma ? 'معاينة الفاتورة المبدئية (عرض أسعار)' : 'معاينة الفاتورة الرسمية (الورق المروس)'}</span>
                 {isProforma && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-400/40 font-bold">
                     غير مسجلة بالمبيعات
                   </span>
                 )}
               </h3>
               <p className="text-[11px] text-slate-300">
                 {isProforma 
-                  ? 'جاهزة للطباعة أو الإرسال للعميل كعرض أسعار رسمي دون خصم من المخزون' 
-                  : 'فاتورة بيع معتمدة ومحفوظة ضمن مبيعات المنظومة'}
+                  ? 'فاتورة مبدئية للعميل لمعاينة الأسعار دون خصم من المخزون أو حفظ في المبيعات' 
+                  : 'تم حفظ عملية البيع وخصم المخزون بنجاح'}
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
                 title="تحويل هذه الفاتورة المبدئية إلى بيع نهائي وخصمها من المخزون"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>تحويل لبيع نهائي الآن</span>
+                <span>تحويل لبيع نهائي وحفظ</span>
               </button>
             )}
 
@@ -116,7 +116,7 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
 
         {/* Scrollable Printable Invoice Area */}
         <div className="overflow-y-auto p-4 sm:p-8 bg-slate-100/60 custom-scrollbar flex-1 flex justify-center">
-          {/* THE OFFICIAL LETTERHEAD SHEET (الورق المروس) */}
+          {/* THE OFFICIAL LETTERHEAD SHEET (الورق المروس الاحترافي) */}
           <div 
             id="official-print-invoice"
             ref={printRef}
@@ -134,31 +134,31 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
             {isProforma && (
               <div className="mb-4 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-center text-xs font-bold flex items-center justify-center gap-2">
                 <span>⚠️</span>
-                <span>فاتورة مبدئية / عرض أسعار رسمي - الأسعار سارية لمدة 7 أيام - لا تسجل كحركة بيع نهائية بالمخازن</span>
+                <span>فاتورة مبدئية / عرض أسعار رسمي - صالحة لمدة 7 أيام - لا تسجل كحركة بيع نهائية بالمخازن</span>
               </div>
             )}
 
-            {/* Official Letterhead Header (ترويسة الشركة الرسمية) */}
+            {/* Official Letterhead Header (ترويسة الشركة الاحترافية الرسمية) */}
             <div className="pb-6 border-b-2 border-slate-200">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-right">
-                {/* Right: Arabic Branding */}
+                {/* Right: Branding with Logo */}
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-2xl bg-white border-2 border-slate-100 shadow-md p-1.5 flex items-center justify-center shrink-0">
                     <img 
                       src="/Logo.png" 
-                      alt="ابن السنوسي للطاقة الشمسية" 
+                      alt="ابن السنوسي للحلول المتكاملة" 
                       className="w-full h-full object-contain"
                     />
                   </div>
                   <div>
                     <h1 className="text-xl sm:text-2xl font-black text-brand-blue tracking-tight">
-                      شركة ابن السنوسي
+                      ابن السنوسي للحلول المتكاملة
                     </h1>
                     <p className="text-xs sm:text-sm font-bold text-amber-600">
-                      لحلول الطاقة الشمسية والأنظمة الكهربائية المعتمدة
+                      حلول الطاقة الشمسية والأنظمة الكهربائية والتقنية المتقدمة
                     </p>
-                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                      س.ت: 1010892341 | الرقم الضريبي: 310294857200003
+                    <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                      📍 الخرطوم بحري كوبر شرق كبري الخرطوم كوبر | 📞 +249900009596
                     </p>
                   </div>
                 </div>
@@ -168,10 +168,10 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
                   <div className={`px-5 py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm text-white ${
                     isProforma ? 'bg-amber-600' : 'bg-brand-blue'
                   }`}>
-                    {isProforma ? 'فاتورة مبدئية / عرض أسعار' : 'فاتورة ضريبية رسمية'}
+                    {isProforma ? 'فاتورة مبدئية / عرض أسعار' : 'فاتورة بيع رسمية'}
                   </div>
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                    {isProforma ? 'PROFORMA INVOICE / QUOTATION' : 'TAX SALES INVOICE'}
+                    {isProforma ? 'PROFORMA INVOICE / QUOTATION' : 'SALES INVOICE'}
                   </span>
                   <div className="text-xs font-mono font-bold text-brand-blue mt-1">
                     #{invoice.id}
@@ -197,13 +197,13 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] font-medium">تاريخ وتوقيت الإصدار:</span>
+                <span className="text-slate-400 block text-[10px] font-medium">التاريخ والتوقيت (توقيت السودان):</span>
                 <span className="font-mono font-bold text-slate-800">{invoice.date} {invoice.time || ''}</span>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] font-medium">اسم العميل / المستفيد:</span>
-                <span className="font-bold text-brand-blue text-sm">{invoice.customerName || 'عميل نقدي / استفسار'}</span>
+                <span className="text-slate-400 block text-[10px] font-medium">اسم العميل:</span>
+                <span className="font-bold text-brand-blue text-sm">{invoice.customerName || 'عميل نقدي'}</span>
               </div>
 
               <div>
@@ -218,30 +218,30 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] font-medium">الموظف / المسؤول:</span>
+                <span className="text-slate-400 block text-[10px] font-medium">الموظف المسؤول:</span>
                 <span className="font-medium text-slate-700">{invoice.employeeName || 'مسؤول المبيعات'}</span>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] font-medium">حالة الوثيقة:</span>
-                <span className="font-bold text-slate-800">{isProforma ? 'مبدئية (للمعاينة)' : invoice.status}</span>
+                <span className="text-slate-400 block text-[10px] font-medium">حالة الفاتورة:</span>
+                <span className="font-bold text-slate-800">{isProforma ? 'فاتورة مبدئية' : invoice.status}</span>
               </div>
 
               <div className="col-span-2">
-                <span className="text-slate-400 block text-[10px] font-medium">صلاحية العرض والضمان:</span>
+                <span className="text-slate-400 block text-[10px] font-medium">ملاحظات والصلاحية:</span>
                 <span className="text-slate-600 text-[11px]">
-                  {isProforma ? 'الأسعار سارية لمدة 7 أيام من تاريخه والضمان يسري بعد الشراء' : 'شامل الضمان المعتمد حسب شروط الوكالة المصنعة'}
+                  {isProforma ? 'الأسعار سارية لمدة 7 أيام - تخضع لتوافر المخزون عند التعميد' : 'البضاعة المباعة تخضع للضمان المصنعي المعتمد'}
                 </span>
               </div>
             </div>
 
-            {/* Table of Items (جدول الأصناف المباعة) */}
+            {/* Table of Items (جدول الأصناف) */}
             <div className="my-6 overflow-hidden rounded-xl border border-slate-200">
               <table className="w-full text-right text-xs">
                 <thead>
                   <tr className="bg-slate-800 text-white font-bold">
                     <th className="py-2.5 px-3 w-10 text-center">#</th>
-                    <th className="py-2.5 px-3">بيان الصنف والوصف الفني</th>
+                    <th className="py-2.5 px-3">بيان الصنف والوصف</th>
                     <th className="py-2.5 px-3 w-20 text-center">الكمية</th>
                     <th className="py-2.5 px-3 w-28 text-left">سعر الوحدة</th>
                     <th className="py-2.5 px-3 w-28 text-left">الإجمالي</th>
@@ -288,8 +288,8 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
                 <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200">
                   <img src={qrSvgUrl} alt="QR Code" className="w-14 h-14 shrink-0 rounded" />
                   <div className="text-[10px] text-slate-500 leading-tight">
-                    <p className="font-bold text-slate-700">رمز التحقق الإلكتروني</p>
-                    <p className="text-[9px] text-slate-400">يمكن مسح الكود للتحقق من تفاصيل الوثيقة</p>
+                    <p className="font-bold text-slate-700">ابن السنوسي للحلول المتكاملة</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">هاتف: +249900009596</p>
                   </div>
                 </div>
               </div>
@@ -321,14 +321,14 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
                     ? 'text-amber-900 bg-amber-50 border-amber-300' 
                     : 'text-brand-blue bg-brand-blue/10 border-brand-blue/20'
                 }`}>
-                  <span>{isProforma ? 'إجمالي عرض السعر المبدئي:' : 'المبلغ الإجمالي النهائي:'}</span>
+                  <span>{isProforma ? 'إجمالي الفاتورة المبدئية:' : 'المبلغ الإجمالي النهائي:'}</span>
                   <span className="font-mono text-base">{invoice.total.toLocaleString()} ج.س</span>
                 </div>
 
                 {!isProforma && (
                   <>
                     <div className="flex justify-between text-slate-600 pt-1 text-[11px]">
-                      <span>المبلغ المدفوع:</span>
+                      <span>المبلغ المسدد:</span>
                       <span className="font-mono font-bold text-emerald-700">{(invoice.paidAmount || invoice.total).toLocaleString()} ج.س</span>
                     </div>
 
@@ -346,35 +346,37 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
             {/* Official Stamp & Signatures Area */}
             <div className="grid grid-cols-2 gap-8 my-8 pt-6 border-t-2 border-slate-200 text-xs">
               <div className="text-center space-y-8">
-                <p className="font-bold text-slate-700">{isProforma ? 'موافقة العميل على العرض' : 'توقيع المستلم / العميل'}</p>
+                <p className="font-bold text-slate-700">{isProforma ? 'موافقة العميل على الأسعار' : 'توقيع المستلم / العميل'}</p>
                 <div className="w-48 border-b-2 border-dashed border-slate-300 mx-auto"></div>
                 <p className="text-[10px] text-slate-400">
-                  {isProforma ? 'اعتماد موافقة العميل على الأسعار المذكورة' : 'استلمت الأصناف الموضحة أعلاه بحالة سليمة'}
+                  {isProforma ? 'اعتماد موافقة العميل' : 'استلمت الأصناف بحالة سليمة ومطابقة للمواصفات'}
                 </p>
               </div>
 
-              <div className="text-center space-y-2 relative flex flex-col items-center">
+              <div className="text-center space-y-3 relative flex flex-col items-center">
                 <p className="font-bold text-brand-blue">ختم وتوقيع الشركة المعتمد</p>
                 
-                <div className="w-24 h-24 rounded-full border-2 border-brand-blue/60 p-1 flex items-center justify-center relative rotate-[-6deg] opacity-90">
-                  <div className="w-full h-full rounded-full border border-dashed border-brand-blue flex flex-col items-center justify-center p-1 bg-blue-50/20">
-                    <span className="text-[8px] font-bold text-brand-blue">شركة ابن السنوسي</span>
-                    <span className="text-[10px] font-black text-amber-600">★ معتمد ★</span>
-                    <span className="text-[7px] text-slate-500 font-mono">قسم المبيعات</span>
-                  </div>
+                {/* Reserved blank box for official ink stamp after printing outside system */}
+                <div className="w-32 h-24 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/60 flex flex-col items-center justify-center p-2 text-slate-400">
+                  <span className="text-[11px] font-bold text-slate-500">موضع الختم الرسمي</span>
+                  <span className="text-[9px] text-slate-400 mt-0.5">(يُختم يدوياً بعد الطباعة)</span>
                 </div>
 
-                <div className="w-48 border-b-2 border-slate-300 mx-auto"></div>
+                <div className="w-48 border-b-2 border-slate-300 mx-auto pt-1"></div>
+                <p className="text-[10px] text-slate-400">توقيع المسؤول المعتمد</p>
               </div>
             </div>
 
-            {/* Official Terms & Footer */}
+            {/* Official Terms & Footer with exact requested details */}
             <div className="mt-8 pt-4 border-t border-slate-200 text-[10px] text-slate-500 text-center space-y-1">
-              <p className="font-medium text-slate-600">
-                • البضاعة المباعة تخضع للضمان المصنعي المعتمد • الاستبدال أو الاسترجاع وفق الشروط والمدة النظامية وبوجود الفاتورة الأصلية.
+              <p className="font-bold text-slate-700">
+                ابن السنوسي للحلول المتكاملة • هاتف: +249900009596
               </p>
-              <p className="text-slate-400 font-mono">
-                الخرطوم - السوق الشعبي / بورتسودان | هاتف: +249 912345678 | البريد: sales@ibnalsanusi.com
+              <p className="text-slate-500 font-medium">
+                العنوان: الخرطوم بحري كوبر شرق كبري الخرطوم كوبر
+              </p>
+              <p className="text-slate-400 text-[9px] mt-0.5">
+                • البضاعة المباعة تخضع للضمان المصنعي المعتمد • الفاتورة المبدئية غير ملزمة صالحة لمدة 7 أيام عمل
               </p>
             </div>
 
