@@ -169,6 +169,18 @@ const App: React.FC = () => {
     upsertProductToSupabase(newProduct).catch(() => {});
   };
 
+  const handleUpdateProduct = async (updatedProduct: Product) => {
+    // 1. تحديث الحالة المحلية وتخزين المتصفح
+    const updated = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+    setProducts(updated);
+    try {
+      localStorage.setItem('erp_products', JSON.stringify(updated));
+    } catch {}
+
+    // 2. تحديث المنتج في قاعدة البيانات السحابية (Supabase)
+    await upsertProductToSupabase(updatedProduct);
+  };
+
   const handleDeleteProduct = async (productId: string) => {
     // 1. حذف من الحالة المحلية وتخزين الجهاز
     const updated = products.filter(p => p.id !== productId);
@@ -301,7 +313,15 @@ const App: React.FC = () => {
       case 'dashboard':
         return <Dashboard products={products} invoices={invoices} customers={customers} />;
       case 'inventory':
-        return <Inventory products={products} categories={productCategories} onAddProduct={handleAddProduct} onDeleteProduct={handleDeleteProduct} />;
+        return (
+          <Inventory 
+            products={products} 
+            categories={productCategories} 
+            onAddProduct={handleAddProduct} 
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct} 
+          />
+        );
       case 'pos':
         return <POS products={products} customers={customers} onSaveInvoice={handleSaveInvoice} onNavigateToInvoices={() => setCurrentView('invoices')} currentUser={currentUser} />;
       case 'invoices':

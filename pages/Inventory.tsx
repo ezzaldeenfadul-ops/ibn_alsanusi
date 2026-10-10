@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
-import { Search, Package, Plus, AlertTriangle, Barcode, Trash, X } from '../components/Icons';
+import { Search, Package, Plus, AlertTriangle, Barcode, Trash, X, Edit } from '../components/Icons';
 import AddProductModal from '../components/AddProductModal';
+import EditProductModal from '../components/EditProductModal';
 
 interface InventoryProps {
   products: Product[];
   categories: string[];
   onAddProduct: (product: Product) => void;
+  onUpdateProduct: (product: Product) => Promise<void> | void;
   onDeleteProduct: (productId: string) => Promise<void> | void;
 }
 
@@ -14,16 +16,21 @@ const Inventory: React.FC<InventoryProps> = ({
   products, 
   categories, 
   onAddProduct, 
+  onUpdateProduct,
   onDeleteProduct 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
+  // Edit Product Modal State
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   // Delete Confirmation Modal State
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteSuccessToast, setDeleteSuccessToast] = useState<string | null>(null);
+  const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -32,13 +39,29 @@ const Inventory: React.FC<InventoryProps> = ({
     return matchesSearch && matchesCategory;
   });
 
+  const handleOpenEdit = (product: Product) => {
+    setProductToEdit(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (updatedProduct: Product) => {
+    await onUpdateProduct(updatedProduct);
+    setFeedbackToast({
+      message: `تم تحديث بيانات المنتج "${updatedProduct.name}" وحفظ التعديل في قاعدة البيانات بنجاح!`,
+      type: 'success'
+    });
+  };
+
   const handleConfirmDelete = async () => {
     if (!productToDelete) return;
     setIsDeleting(true);
     try {
       const deletedName = productToDelete.name;
       await onDeleteProduct(productToDelete.id);
-      setDeleteSuccessToast(`تم حذف المنتج "${deletedName}" وما يتعلق به من قاعدة البيانات بنجاح!`);
+      setFeedbackToast({
+        message: `تم حذف المنتج "${deletedName}" وما يتعلق به من قاعدة البيانات بنجاح!`,
+        type: 'info'
+      });
       setProductToDelete(null);
     } catch (err: any) {
       alert(`حدث خطأ أثناء محاولة الحذف: ${err?.message || 'يرجى المحاولة لاحقاً'}`);
@@ -64,15 +87,19 @@ const Inventory: React.FC<InventoryProps> = ({
         </button>
       </div>
 
-      {/* Success Notification Banner */}
-      {deleteSuccessToast && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-sm font-bold flex items-center justify-between shadow-sm animate-fade-in">
+      {/* Feedback Banner */}
+      {feedbackToast && (
+        <div className={`p-4 rounded-xl border text-sm font-bold flex items-center justify-between shadow-sm animate-fade-in ${
+          feedbackToast.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
+            : 'bg-blue-50 border-blue-300 text-brand-blue'
+        }`}>
           <div className="flex items-center gap-2">
-            <span>✅</span>
-            <span>{deleteSuccessToast}</span>
+            <span>{feedbackToast.type === 'success' ? '✅' : 'ℹ️'}</span>
+            <span>{feedbackToast.message}</span>
           </div>
           <button 
-            onClick={() => setDeleteSuccessToast(null)} 
+            onClick={() => setFeedbackToast(null)} 
             className="text-slate-400 hover:text-slate-600 p-1"
           >
             <X className="w-4 h-4" />
@@ -163,16 +190,27 @@ const Inventory: React.FC<InventoryProps> = ({
                     )}
                   </td>
 
-                  {/* Actions Column: Delete Button */}
+                  {/* Actions Column: Edit & Delete Buttons */}
                   <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => setProductToDelete(product)}
-                      className="p-2 text-rose-600 hover:text-white hover:bg-rose-600 rounded-xl transition-all duration-200 border border-rose-200 hover:border-rose-600 shadow-sm active:scale-95 inline-flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-                      title="حذف هذا المنتج من قاعدة البيانات"
-                    >
-                      <Trash className="w-4 h-4" />
-                      <span>حذف</span>
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEdit(product)}
+                        className="p-2 text-brand-blue hover:text-white hover:bg-brand-blue rounded-xl transition-all duration-200 border border-blue-200 hover:border-brand-blue shadow-sm active:scale-95 inline-flex items-center gap-1 text-xs font-bold cursor-pointer"
+                        title="تعديل بيانات هذا المنتج وحفظها في قاعدة البيانات"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>تعديل</span>
+                      </button>
+
+                      <button
+                        onClick={() => setProductToDelete(product)}
+                        className="p-2 text-rose-600 hover:text-white hover:bg-rose-600 rounded-xl transition-all duration-200 border border-rose-200 hover:border-rose-600 shadow-sm active:scale-95 inline-flex items-center gap-1 text-xs font-bold cursor-pointer"
+                        title="حذف هذا المنتج من قاعدة البيانات"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -194,6 +232,18 @@ const Inventory: React.FC<InventoryProps> = ({
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         onSave={onAddProduct}
+        categories={categories}
+      />
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setProductToEdit(null);
+        }}
+        onSave={handleSaveEdit}
+        product={productToEdit}
         categories={categories}
       />
 
