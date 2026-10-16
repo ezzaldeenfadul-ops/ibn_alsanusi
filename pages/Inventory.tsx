@@ -32,6 +32,24 @@ const Inventory: React.FC<InventoryProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
+  // تجميع كافة الفئات المتاحة من الإعدادات ومن منتجات المخزن الفعلية لضمان عدم نقص أي فئة
+  const allAvailableCategories = React.useMemo(() => {
+    const defaultList = [
+      'ألواح شمسية',
+      'محول (Inverter)',
+      'بطارية',
+      'كابلات',
+      'هياكل تثبيت',
+      'ملحقات واكسسوارات',
+      'طلمبات وغواطس',
+      'خدمة / تركيب',
+      'عام'
+    ];
+    const incomingList = Array.isArray(categories) && categories.length > 0 ? categories : defaultList;
+    const fromProducts = products.map(p => p.category).filter(Boolean);
+    return Array.from(new Set([...incomingList, ...fromProducts, ...defaultList])).filter(Boolean);
+  }, [categories, products]);
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           product.sku.toLowerCase().includes(searchTerm.toLowerCase());
@@ -124,8 +142,8 @@ const Inventory: React.FC<InventoryProps> = ({
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
         >
-          <option value="all">جميع الفئات</option>
-          {categories.map(cat => (
+          <option value="all">جميع الفئات ({products.length})</option>
+          {allAvailableCategories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
@@ -232,7 +250,7 @@ const Inventory: React.FC<InventoryProps> = ({
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         onSave={onAddProduct}
-        categories={categories}
+        categories={allAvailableCategories}
       />
 
       {/* Edit Product Modal */}
@@ -244,7 +262,7 @@ const Inventory: React.FC<InventoryProps> = ({
         }}
         onSave={handleSaveEdit}
         product={productToEdit}
-        categories={categories}
+        categories={allAvailableCategories}
       />
 
       {/* DELETE CONFIRMATION MODAL (نافذة تأكيد الحذف من قاعدة البيانات) */}

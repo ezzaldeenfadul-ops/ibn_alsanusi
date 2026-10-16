@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Product } from '../types';
-import { X, CheckCircle2 } from './Icons';
+import { X, CheckCircle2, Package } from './Icons';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -10,6 +10,18 @@ interface EditProductModalProps {
   categories: string[];
 }
 
+const DEFAULT_CATEGORIES = [
+  'ألواح شمسية',
+  'محول (Inverter)',
+  'بطارية',
+  'كابلات',
+  'هياكل تثبيت',
+  'ملحقات واكسسوارات',
+  'طلمبات وغواطس',
+  'خدمة / تركيب',
+  'عام'
+];
+
 const EditProductModal: React.FC<EditProductModalProps> = ({
   isOpen,
   onClose,
@@ -17,9 +29,18 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   product,
   categories,
 }) => {
+  // دمج الفئات لضمان وجود فئة المنتج الحالية وكافة الفئات المتاحة
+  const availableCategories = useMemo(() => {
+    const list = Array.isArray(categories) && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+    const currentProdCategory = product?.category ? [product.category] : [];
+    return Array.from(new Set([...currentProdCategory, ...list, ...DEFAULT_CATEGORIES])).filter(Boolean);
+  }, [categories, product]);
+
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [stock, setStock] = useState<number>(0);
   const [minStock, setMinStock] = useState<number>(5);
   const [price, setPrice] = useState<number>(0);
@@ -29,10 +50,12 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (product) {
+    if (product && isOpen) {
       setSku(product.sku || '');
       setName(product.name || '');
-      setCategory(product.category || (categories[0] || ''));
+      setCategory(product.category || (availableCategories[0] || 'ألواح شمسية'));
+      setIsCustomCategory(false);
+      setCustomCategoryInput('');
       setStock(product.stock ?? 0);
       setMinStock(product.minStock ?? 5);
       setPrice(product.price ?? 0);
@@ -40,7 +63,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setSpecs(product.specs || '');
       setTrackSerial(Boolean(product.trackSerial));
     }
-  }, [product, categories]);
+  }, [product, isOpen, availableCategories]);
 
   if (!isOpen || !product) return null;
 
@@ -55,13 +78,22 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       return;
     }
 
+    const finalCategory = isCustomCategory 
+      ? customCategoryInput.trim() 
+      : category.trim();
+
+    if (!finalCategory) {
+      alert('يرجى تحديد أو كتابة فئة المنتج.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const updatedProduct: Product = {
         ...product,
         sku: sku.trim(),
         name: name.trim(),
-        category,
+        category: finalCategory,
         stock: Number(stock) || 0,
         minStock: Number(minStock) || 0,
         price: Number(price) || 0,
@@ -80,23 +112,26 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 my-auto animate-scale-up text-right">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 p-4 overflow-y-auto animate-fade-in text-right">
+      <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 my-auto animate-scale-up">
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-brand-blue to-blue-800 p-6 text-white flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <span>تعديل بيانات المنتج</span>
-            </h2>
-            <p className="text-xs text-blue-100 mt-1">
-              سيتم تطبيق التعديلات فوراً في المخزن وقاعدة البيانات السحابية
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/10 rounded-2xl">
+              <Package className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">تعديل بيانات المنتج</h2>
+              <p className="text-xs text-blue-100 mt-0.5">
+                تحديث بيانات الصنف ومزامنته في المخزن وقاعدة البيانات
+              </p>
+            </div>
           </div>
           <button 
             type="button" 
             onClick={onClose} 
             disabled={isSubmitting}
-            className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
+            className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -114,7 +149,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                 type="text" 
                 value={sku} 
                 onChange={e => setSku(e.target.value)} 
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue font-mono text-sm bg-slate-50 focus:bg-white transition-all" 
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue font-mono text-sm bg-slate-50 focus:bg-white transition-all font-bold" 
               />
             </div>
             
@@ -130,19 +165,46 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
               />
             </div>
 
-            {/* Category */}
-            <div className="space-y-1.5">
-              <label className="block font-bold text-slate-700">الفئة *</label>
-              <select 
-                required 
-                value={category} 
-                onChange={e => setCategory(e.target.value)} 
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue bg-slate-50 focus:bg-white transition-all text-sm font-medium"
-              >
-                {categories.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+            {/* Category Selector with Custom Category Support */}
+            <div className="space-y-1.5 md:col-span-2 bg-blue-50/50 p-3.5 rounded-2xl border border-blue-100">
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-bold text-brand-blue">
+                  الفئة والتصنيف *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomCategory(!isCustomCategory)}
+                  className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-white border border-blue-200 hover:border-blue-400 px-3 py-1 rounded-lg transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                >
+                  {isCustomCategory ? '📋 اختيار من القائمة' : '➕ كتابة فئة جديدة'}
+                </button>
+              </div>
+
+              {isCustomCategory ? (
+                <div className="space-y-1">
+                  <input
+                    required
+                    type="text"
+                    placeholder="اكتب اسم الفئة الجديدة هنا..."
+                    value={customCategoryInput}
+                    onChange={e => setCustomCategoryInput(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-brand-blue/40 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue bg-white text-sm font-bold text-slate-800"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-gray-500">سيتم ربط المنتج بالفئة الجديدة وتحديث النظام.</p>
+                </div>
+              ) : (
+                <select 
+                  required 
+                  value={category} 
+                  onChange={e => setCategory(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue bg-white transition-all text-sm font-bold text-slate-800 cursor-pointer shadow-sm"
+                >
+                  {availableCategories.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Current Stock */}
@@ -199,15 +261,15 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
             </div>
 
             {/* Track Serial */}
-            <div className="flex items-center gap-3 pt-6">
-              <label className="relative flex items-center cursor-pointer select-none">
+            <div className="flex items-center gap-3 pt-6 md:col-span-2">
+              <label className="relative flex items-center cursor-pointer select-none p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full">
                 <input 
                   type="checkbox" 
                   checked={trackSerial} 
                   onChange={e => setTrackSerial(e.target.checked)} 
                   className="w-5 h-5 rounded border-slate-300 text-brand-blue focus:ring-brand-blue cursor-pointer" 
                 />
-                <span className="mr-2 font-bold text-slate-700 text-sm">تتبع الأرقام التسلسلية لهذا الصنف</span>
+                <span className="mr-3 font-bold text-slate-700 text-sm">تتبع الأرقام التسلسلية لهذا الصنف</span>
               </label>
             </div>
           </div>
@@ -220,7 +282,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
               value={specs} 
               onChange={e => setSpecs(e.target.value)} 
               placeholder="مثال: القدرة 550 وات، كفاءة 21.3%، أحادي البلورة (Monocrystalline)..."
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue text-xs sm:text-sm bg-slate-50 focus:bg-white transition-all" 
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue text-xs sm:text-sm bg-slate-50 focus:bg-white transition-all resize-none" 
             />
           </div>
 

@@ -24,7 +24,8 @@ import {
   deleteInvoiceFromSupabase,
   clearAllInvoicesFromSupabase,
   upsertPurchaseOrderToSupabase,
-  recordInventoryLogToSupabase
+  recordInventoryLogToSupabase,
+  saveCategoriesToSupabase
 } from './supabaseService';
 import { supabase, SUPABASE_PROJECT_NAME } from './supabase';
 import { getCurrentSupabaseUser, signOutFromSupabase } from './authService';
@@ -277,6 +278,14 @@ const App: React.FC = () => {
   // معالجات البيانات الموثوقة مع الحفظ السحابي وطابور المزامنة
   const handleAddProduct = async (newProduct: Product) => {
     setProducts(prev => [newProduct, ...prev]);
+
+    // ضمان حفظ الفئة الجديدة في قائمة التصنيفات العامة وسحابة Supabase
+    if (newProduct.category && !productCategories.includes(newProduct.category)) {
+      const updatedCats = Array.from(new Set([...productCategories, newProduct.category]));
+      setProductCategories(updatedCats);
+      saveCategoriesToSupabase(updatedCats).catch(() => {});
+    }
+
     const success = await upsertProductToSupabase(newProduct);
     if (!success) {
       enqueuePendingSync('product', newProduct);
@@ -299,6 +308,13 @@ const App: React.FC = () => {
     try {
       localStorage.setItem('erp_products', JSON.stringify(updated));
     } catch {}
+
+    // ضمان حفظ الفئة الجديدة في قائمة التصنيفات العامة وسحابة Supabase
+    if (updatedProduct.category && !productCategories.includes(updatedProduct.category)) {
+      const updatedCats = Array.from(new Set([...productCategories, updatedProduct.category]));
+      setProductCategories(updatedCats);
+      saveCategoriesToSupabase(updatedCats).catch(() => {});
+    }
 
     const success = await upsertProductToSupabase(updatedProduct);
     if (!success) {
