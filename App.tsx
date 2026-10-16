@@ -11,8 +11,7 @@ import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import Auth from './pages/Auth';
 import { ViewState, Invoice, Product, Customer, Supplier, PurchaseOrder, Employee } from './types';
-import { initialProducts, initialInvoices, initialCustomers, initialSuppliers, initialPurchaseOrders, initialEmployees } from './data';
-import { Menu, Database, RefreshCw } from './components/Icons';
+import { Menu, Database, RefreshCw, X, CheckCircle2, AlertTriangle } from './components/Icons';
 import { 
   checkSupabaseConnection, 
   loadAllDataFromCloud,
@@ -29,12 +28,11 @@ import {
 } from './supabaseService';
 import { supabase, SUPABASE_PROJECT_NAME } from './supabase';
 import { getCurrentSupabaseUser, signOutFromSupabase } from './authService';
-
-// تنظيف وتفريغ أي معاملات بيع أو فواتير سابقة لضمان بدء النظام نظيفاً تماماً
-if (typeof window !== 'undefined' && localStorage.getItem('erp_clean_invoices_wiped_v1') !== 'true') {
-  localStorage.removeItem('erp_invoices');
-  localStorage.setItem('erp_clean_invoices_wiped_v1', 'true');
-}
+import { 
+  getPendingSyncQueue, 
+  enqueuePendingSync, 
+  processPendingSyncQueue 
+} from './syncService';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
@@ -42,8 +40,10 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCloudConnected, setIsCloudConnected] = useState<boolean | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(() => getPendingSyncQueue().length);
+  const [globalToast, setGlobalToast] = useState<{ message: string; type: 'success' | 'warning' | 'info' } | null>(null);
   
-  // Global State (Local + Cloud Database) - يبدأ فارغاً تماماً
+  // Global State (Local + Cloud Database)
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('erp_products');
     return saved ? JSON.parse(saved) : [];
@@ -82,7 +82,15 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem('erp_employees_v2', JSON.stringify(employees)); }, [employees]);
   useEffect(() => { localStorage.setItem('erp_product_categories', JSON.stringify(productCategories)); }, [productCategories]);
 
-  // دالة تحميل وتحديث كافة البيانات من سحابة Supabase
+  // إخفاء إشعار النظام تلقائياً بعد 6 ثوانٍ
+  useEffect(() => {
+    if (globalToast) {
+      const timer = setTimeout(() => setGlobalToast(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [globalToast]);
+
+  // دالة تحميل وتحديث كافة البيانات من سحابة Supabase مع الدمج الذكي (Smart Merge)
   const loadCloudData = async (silent = false) => {
     if (!silent) setIsRefreshing(true);
     try {
@@ -91,13 +99,80 @@ const App: React.FC = () => {
 
       if (status.connected && status.tablesExist) {
         const bundle = await loadAllDataFromCloud();
-        if (bundle.products) setProducts(bundle.products);
-        if (bundle.customers) setCustomers(bundle.customers);
-        if (bundle.suppliers) setSuppliers(bundle.suppliers);
-        if (bundle.invoices) setInvoices(bundle.invoices);
-        if (bundle.purchaseOrders) setPurchaseOrders(bundle.purchaseOrders);
+
+        // 1. دمج المنتجات بذكاء لمنع مسح المنتجات المحلية غير المرفوعة
+        if (bundle.products) {
+          setProducts(prevProducts => {
+            const cloudMap = new Map(bundle.products!.map(p => [p.id, p]));
+            const localUnsynced = prevProducts.filter(p => !cloudMap.has(p.id));
+            if (localUnsynced.length > 0) {
+              localUnsynced.forEach(p => enqueuePendingSync('product', p));
+            }
+            return [...bundle.products!, ...localUnsynced];
+          });
+        }
+
+        // 2. دمج الفواتير بذكاء لمنع مسح الفواتير المحلية التي تمت دون اتصال
+        if (bundle.invoices) {
+          setInvoices(prevInvoices => {
+            const cloudMap = new Map(bundle.invoices!.map(i => [i.id, i]));
+            const localUnsynced = prevInvoices.filter(i => !cloudMap.has(i.id));
+            if (localUnsynced.length > 0) {
+              localUnsynced.forEach(inv => enqueuePendingSync('invoice', inv));
+            }
+            return [...bundle.invoices!, ...localUnsynced];
+          });
+        }
+
+        // 3. دمج العملاء
+        if (bundle.customers) {
+          setCustomers(prevCustomers => {
+            const cloudMap = new Map(bundle.customers!.map(c => [c.id, c]));
+            const localUnsynced = prevCustomers.filter(c => !cloudMap.has(c.id));
+            if (localUnsynced.length > 0) {
+              localUnsynced.forEach(c => enqueuePendingSync('customer', c));
+            }
+            return [...bundle.customers!, ...localUnsynced];
+          });
+        }
+
+        // 4. دمج الموردين
+        if (bundle.suppliers) {
+          setSuppliers(prevSuppliers => {
+            const cloudMap = new Map(bundle.suppliers!.map(s => [s.id, s]));
+            const localUnsynced = prevSuppliers.filter(s => !cloudMap.has(s.id));
+            if (localUnsynced.length > 0) {
+              localUnsynced.forEach(s => enqueuePendingSync('supplier', s));
+            }
+            return [...bundle.suppliers!, ...localUnsynced];
+          });
+        }
+
+        // 5. دمج طلبات الشراء
+        if (bundle.purchaseOrders) {
+          setPurchaseOrders(prevOrders => {
+            const cloudMap = new Map(bundle.purchaseOrders!.map(o => [o.id, o]));
+            const localUnsynced = prevOrders.filter(o => !cloudMap.has(o.id));
+            if (localUnsynced.length > 0) {
+              localUnsynced.forEach(o => enqueuePendingSync('purchase_order', o));
+            }
+            return [...bundle.purchaseOrders!, ...localUnsynced];
+          });
+        }
+
         if (bundle.employees && bundle.employees.length > 0) setEmployees(bundle.employees);
         if (bundle.categories && bundle.categories.length > 0) setProductCategories(bundle.categories);
+
+        // تشغيل طابور المزامنة التلقائية المعلقة
+        const syncRes = await processPendingSyncQueue();
+        const remainingQueue = getPendingSyncQueue();
+        setPendingSyncCount(remainingQueue.length);
+        if (syncRes.succeeded > 0) {
+          setGlobalToast({
+            type: 'success',
+            message: `🔄 تم رفع ومزامنة ${syncRes.succeeded} عملية معلقة سحابياً بنجاح!`
+          });
+        }
       }
     } catch (err) {
       console.warn('Cloud fetch notice:', err);
@@ -123,28 +198,27 @@ const App: React.FC = () => {
       localStorage.removeItem('erp_customers');
       localStorage.removeItem('erp_suppliers');
       localStorage.removeItem('erp_purchase_orders');
+      localStorage.removeItem('erp_offline_sync_queue_v1');
+      setPendingSyncCount(0);
       alert('تم مسح وتصفير كافة البيانات بنجاح! أصبحت قاعدة البيانات فارغة تماماً.');
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Initial Supabase Cloud Load & Auth Session Check
+  // Initial Supabase Cloud Load & Auth Session Check & Periodic Auto-Sync
   useEffect(() => {
     async function initSupabase() {
-      // 1. استرجاع جلسة المستخدم المسجل في Supabase Auth إن وجدت
       const activeUser = await getCurrentSupabaseUser();
       if (activeUser) {
         setCurrentUser(activeUser);
       }
-
-      // 2. تحميل البيانات السحابية
       await loadCloudData(true);
     }
 
     initSupabase();
 
-    // الاستماع لتغيرات حالة المصادقة (Auth State Change)
+    // الاستماع لتغيرات حالة المصادقة
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const user = await getCurrentSupabaseUser();
@@ -154,8 +228,45 @@ const App: React.FC = () => {
       }
     });
 
+    // مراقبة عودة الاتصال ومزامنة العمليات المعلقة تلقائياً
+    const handleOnline = () => {
+      setIsCloudConnected(true);
+      processPendingSyncQueue().then(res => {
+        setPendingSyncCount(getPendingSyncQueue().length);
+        if (res.succeeded > 0) {
+          setGlobalToast({
+            type: 'success',
+            message: `🌐 تم استعادة الاتصال ومزامنة ${res.succeeded} عملية معلقة سحابياً بنجاح!`
+          });
+        }
+      });
+    };
+
+    const handleOffline = () => {
+      setIsCloudConnected(false);
+      setGlobalToast({
+        type: 'warning',
+        message: '⚠️ انقطع الاتصال بالإنترنت. النظام يعمل محلياً بالكامل وسيتم حفظ العمليات في طابور المزامنة التلقائية.'
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // جدولة مزامنة دورية كل 30 ثانية
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine) {
+        processPendingSyncQueue().then(() => {
+          setPendingSyncCount(getPendingSyncQueue().length);
+        });
+      }
+    }, 30000);
+
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(syncInterval);
     };
   }, []);
 
@@ -163,51 +274,95 @@ const App: React.FC = () => {
     return <Auth employees={employees} setEmployees={setEmployees} onLogin={setCurrentUser} />;
   }
 
-
-  const handleAddProduct = (newProduct: Product) => {
-    setProducts([newProduct, ...products]);
-    upsertProductToSupabase(newProduct).catch(() => {});
+  // معالجات البيانات الموثوقة مع الحفظ السحابي وطابور المزامنة
+  const handleAddProduct = async (newProduct: Product) => {
+    setProducts(prev => [newProduct, ...prev]);
+    const success = await upsertProductToSupabase(newProduct);
+    if (!success) {
+      enqueuePendingSync('product', newProduct);
+      setPendingSyncCount(getPendingSyncQueue().length);
+      setGlobalToast({
+        type: 'warning',
+        message: `⚠️ تم حفظ الصنف "${newProduct.name}" محلياً، وجدولته في طابور المزامنة السحابية.`
+      });
+    } else {
+      setGlobalToast({
+        type: 'success',
+        message: `✅ تم حفظ الصنف "${newProduct.name}" بنجاح في قاعدة البيانات السحابية.`
+      });
+    }
   };
 
   const handleUpdateProduct = async (updatedProduct: Product) => {
-    // 1. تحديث الحالة المحلية وتخزين المتصفح
     const updated = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
     setProducts(updated);
     try {
       localStorage.setItem('erp_products', JSON.stringify(updated));
     } catch {}
 
-    // 2. تحديث المنتج في قاعدة البيانات السحابية (Supabase)
-    await upsertProductToSupabase(updatedProduct);
+    const success = await upsertProductToSupabase(updatedProduct);
+    if (!success) {
+      enqueuePendingSync('product', updatedProduct);
+      setPendingSyncCount(getPendingSyncQueue().length);
+      setGlobalToast({
+        type: 'warning',
+        message: `⚠️ تم تعديل الصنف محلياً، وجدولته للمزامنة السحابية فور توفر الاتصال.`
+      });
+    } else {
+      setGlobalToast({
+        type: 'success',
+        message: `✅ تم تحديث الصنف "${updatedProduct.name}" في قاعدة البيانات السحابية بنجاح.`
+      });
+    }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    // 1. حذف من الحالة المحلية وتخزين الجهاز
     const updated = products.filter(p => p.id !== productId);
     setProducts(updated);
     try {
       localStorage.setItem('erp_products', JSON.stringify(updated));
     } catch {}
-
-    // 2. حذف المنتج وما يتعلق به من قاعدة البيانات السحابية (Supabase)
     await deleteProductFromSupabase(productId);
   };
 
-  const handleAddCustomer = (newCustomer: Customer) => {
-    setCustomers([newCustomer, ...customers]);
-    upsertCustomerToSupabase(newCustomer).catch(() => {});
+  const handleAddCustomer = async (newCustomer: Customer) => {
+    setCustomers(prev => [newCustomer, ...prev]);
+    const success = await upsertCustomerToSupabase(newCustomer);
+    if (!success) {
+      enqueuePendingSync('customer', newCustomer);
+      setPendingSyncCount(getPendingSyncQueue().length);
+    }
   };
 
-  const handleAddSupplier = (newSupplier: Supplier) => {
-    setSuppliers([newSupplier, ...suppliers]);
-    upsertSupplierToSupabase(newSupplier).catch(() => {});
+  const handleAddSupplier = async (newSupplier: Supplier) => {
+    setSuppliers(prev => [newSupplier, ...prev]);
+    const success = await upsertSupplierToSupabase(newSupplier);
+    if (!success) {
+      enqueuePendingSync('supplier', newSupplier);
+      setPendingSyncCount(getPendingSyncQueue().length);
+    }
   };
 
-  const handleSaveInvoice = (newInvoice: Invoice) => {
-    setInvoices([newInvoice, ...invoices]);
-    upsertInvoiceToSupabase(newInvoice).catch(() => {});
+  const handleSaveInvoice = async (newInvoice: Invoice) => {
+    setInvoices(prev => [newInvoice, ...prev]);
 
-    // 1. خصم الكميات من المخزون والأرقام التسلسلية المباعة بدقة
+    // 1. حفظ الفاتورة سحابياً
+    const success = await upsertInvoiceToSupabase(newInvoice);
+    if (!success) {
+      enqueuePendingSync('invoice', newInvoice);
+      setPendingSyncCount(getPendingSyncQueue().length);
+      setGlobalToast({
+        type: 'warning',
+        message: `⚠️ تم تسجيل الفاتورة #${newInvoice.id} محلياً وجدولتها للمزامنة السحابية فور توفر الاتصال.`
+      });
+    } else {
+      setGlobalToast({
+        type: 'success',
+        message: `✅ تم حفظ الفاتورة #${newInvoice.id} بنجاح في قاعدة البيانات السحابية ومزامنة المخزن.`
+      });
+    }
+
+    // 2. خصم الكميات من المخزون والأرقام التسلسلية بدقة
     const updatedProducts = products.map(product => {
       const soldItems = newInvoice.items.filter(item => item.productId === product.id);
       if (soldItems.length > 0) {
@@ -225,17 +380,27 @@ const App: React.FC = () => {
           serialNumbers: remainingSerials
         };
 
-        // تحديث المنتج سحابياً في Supabase
-        upsertProductToSupabase(updated).catch(() => {});
+        upsertProductToSupabase(updated).then(prodSuccess => {
+          if (!prodSuccess) enqueuePendingSync('product', updated);
+        });
 
-        // 2. تسجيل حركة المخزون في السحابة
         recordInventoryLogToSupabase({
           productId: product.id,
           changeType: 'sale',
           quantity: -totalQuantitySold,
           referenceId: newInvoice.id,
           notes: `مبيعات كاشير فاتورة ${newInvoice.id} للعميل: ${newInvoice.customerName} (${totalQuantitySold} وحدة)`
-        }).catch(() => {});
+        }).then(logSuccess => {
+          if (!logSuccess) {
+            enqueuePendingSync('inventory_log', {
+              productId: product.id,
+              changeType: 'sale',
+              quantity: -totalQuantitySold,
+              referenceId: newInvoice.id,
+              notes: `مبيعات كاشير فاتورة ${newInvoice.id}`
+            });
+          }
+        });
 
         return updated;
       }
@@ -249,7 +414,9 @@ const App: React.FC = () => {
       const updatedCustomers = customers.map(c => {
         if (c.id === newInvoice.customerId) {
           const updated = { ...c, balance: Number(c.balance || 0) + unpaidAmount };
-          upsertCustomerToSupabase(updated).catch(() => {});
+          upsertCustomerToSupabase(updated).then(custSuccess => {
+            if (!custSuccess) enqueuePendingSync('customer', updated);
+          });
           return updated;
         }
         return c;
@@ -258,17 +425,20 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSavePurchaseOrder = (newOrder: PurchaseOrder) => {
-    setPurchaseOrders([newOrder, ...purchaseOrders]);
-    upsertPurchaseOrderToSupabase(newOrder).catch(() => {});
+  const handleSavePurchaseOrder = async (newOrder: PurchaseOrder) => {
+    setPurchaseOrders(prev => [newOrder, ...prev]);
+    const success = await upsertPurchaseOrderToSupabase(newOrder);
+    if (!success) {
+      enqueuePendingSync('purchase_order', newOrder);
+      setPendingSyncCount(getPendingSyncQueue().length);
+    }
   };
 
-  const handleReceiveOrder = (orderId: string) => {
+  const handleReceiveOrder = async (orderId: string) => {
     const orderIndex = purchaseOrders.findIndex(o => o.id === orderId);
     if (orderIndex === -1) return;
     
     const order = purchaseOrders[orderIndex];
-    // Only process if currently ordered
     if (order.status !== 'ordered') return;
 
     // 1. Update Products Stock
@@ -276,7 +446,9 @@ const App: React.FC = () => {
       const orderItem = order.items.find(item => item.productId === product.id);
       if (orderItem) {
         const updated = { ...product, stock: product.stock + orderItem.quantity };
-        upsertProductToSupabase(updated).catch(() => {});
+        upsertProductToSupabase(updated).then(s => {
+          if (!s) enqueuePendingSync('product', updated);
+        });
         return updated;
       }
       return product;
@@ -288,7 +460,12 @@ const App: React.FC = () => {
     const updatedOrder = { ...order, status: 'received' as const };
     updatedOrders[orderIndex] = updatedOrder;
     setPurchaseOrders(updatedOrders);
-    upsertPurchaseOrderToSupabase(updatedOrder).catch(() => {});
+    
+    const poSuccess = await upsertPurchaseOrderToSupabase(updatedOrder);
+    if (!poSuccess) {
+      enqueuePendingSync('purchase_order', updatedOrder);
+      setPendingSyncCount(getPendingSyncQueue().length);
+    }
   };
 
   const handleDeleteInvoice = async (invoiceId: string) => {
@@ -325,11 +502,13 @@ const App: React.FC = () => {
       case 'pos':
         return <POS products={products} customers={customers} onSaveInvoice={handleSaveInvoice} onNavigateToInvoices={() => setCurrentView('invoices')} currentUser={currentUser} />;
       case 'invoices':
-        return <Invoices 
-          invoices={invoices} 
-          onDeleteInvoice={handleDeleteInvoice} 
-          onClearAllInvoices={handleClearAllInvoices} 
-        />;
+        return (
+          <Invoices 
+            invoices={invoices} 
+            onDeleteInvoice={handleDeleteInvoice} 
+            onClearAllInvoices={handleClearAllInvoices} 
+          />
+        );
       case 'customers':
         return <Customers customers={customers} onAddCustomer={handleAddCustomer} />;
       case 'purchases':
@@ -405,6 +584,34 @@ const App: React.FC = () => {
           </button>
         </header>
 
+        {/* Global Floating Toast / Alert */}
+        {globalToast && (
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-xl w-[92%] animate-fade-in shadow-2xl">
+            <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+              globalToast.type === 'success' 
+                ? 'bg-emerald-900 text-white border-emerald-700' 
+                : globalToast.type === 'warning'
+                ? 'bg-amber-900 text-amber-100 border-amber-700'
+                : 'bg-slate-900 text-white border-slate-700'
+            }`}>
+              <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+                {globalToast.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                )}
+                <span>{globalToast.message}</span>
+              </div>
+              <button 
+                onClick={() => setGlobalToast(null)} 
+                className="text-white/60 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8 scroll-smooth">
           <div className="max-w-7xl mx-auto min-h-full">
@@ -413,20 +620,32 @@ const App: React.FC = () => {
                 <img src="/Logo.png" alt="ابن السنوسي" className="w-16 h-16 object-contain hidden sm:block" />
                 <div>
                   <h1 className="text-xl font-bold text-gray-800">مرحباً بك، {currentUser.name} 👋</h1>
-                  <p className="text-sm text-gray-500">نتمنى لك يوماً سعيداً وموفقاً في العمل</p>
+                  <p className="text-sm text-gray-500">نظام إدارة وتخطيط موارد المؤسسة المتكامل</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Pending Offline Sync Badge */}
+                {pendingSyncCount > 0 && (
+                  <div 
+                    onClick={() => loadCloudData(false)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold cursor-pointer hover:bg-amber-100 transition-all shadow-sm"
+                    title="هناك عمليات بانتظار المزامنة السحابية - اضغط للمزامنة فوراً"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    <span>معلق: {pendingSyncCount}</span>
+                  </div>
+                )}
+
                 {/* Manual Cloud Refresh Button */}
                 <button
                   onClick={() => loadCloudData(false)}
                   disabled={isRefreshing}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-all border border-gray-200 disabled:opacity-50"
-                  title="تحديث البيانات من سحابة Supabase"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-all border border-gray-200 disabled:opacity-50 cursor-pointer"
+                  title="مزامنة وتحديث البيانات مع سحابة Supabase"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand-blue' : ''}`} />
-                  <span className="hidden sm:inline">{isRefreshing ? 'جاري الجلب...' : 'تحديث السحابة'}</span>
+                  <span className="hidden sm:inline">{isRefreshing ? 'جاري المزامنة...' : 'مزامنة السحابة'}</span>
                 </button>
 
                 {/* Supabase Status Button */}

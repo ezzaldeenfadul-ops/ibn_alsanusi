@@ -145,22 +145,30 @@ export async function fetchInvoicesFromSupabase(): Promise<Invoice[] | null> {
     if (error) throw error;
     if (!data) return null;
 
-    return data.map((row: any) => ({
-      id: row.id,
-      customerId: row.customer_id || '',
-      customerName: row.customer_name || 'عميل نقدي',
-      date: row.date,
-      time: row.time || '',
-      employeeName: row.employee_name || '',
-      items: Array.isArray(row.items) ? row.items : [],
-      subtotal: Number(row.subtotal || 0),
-      tax: Number(row.tax || 0),
-      discount: Number(row.discount || 0),
-      total: Number(row.total || 0),
-      paidAmount: Number(row.paid_amount || 0),
-      status: (row.status as InvoiceStatus) || InvoiceStatus.PAID,
-      notes: row.notes || '',
-    }));
+    return data.map((row: any) => {
+      let paymentMethod = 'نقداً';
+      if (row.notes && row.notes.includes('طريقة الدفع:')) {
+        const parts = row.notes.split('طريقة الدفع:');
+        if (parts[1]) paymentMethod = parts[1].split('|')[0].trim();
+      }
+      return {
+        id: row.id,
+        customerId: row.customer_id || '',
+        customerName: row.customer_name || 'عميل نقدي',
+        date: row.date,
+        time: row.time || '',
+        employeeName: row.employee_name || '',
+        items: Array.isArray(row.items) ? row.items : [],
+        subtotal: Number(row.subtotal || 0),
+        tax: Number(row.tax || 0),
+        discount: Number(row.discount || 0),
+        total: Number(row.total || 0),
+        paidAmount: Number(row.paid_amount || 0),
+        status: (row.status as InvoiceStatus) || InvoiceStatus.PAID,
+        paymentMethod,
+        notes: row.notes || '',
+      };
+    });
   } catch (err) {
     console.warn('Supabase fetchInvoices failed:', err);
     return null;
@@ -344,14 +352,28 @@ export async function upsertSupplierToSupabase(supplier: Supplier): Promise<bool
 // الفواتير
 export async function upsertInvoiceToSupabase(invoice: Invoice): Promise<boolean> {
   try {
-    // التحقق من معرف العميل لتفادي أخطاء المفتاح الخارجي في حال كان عميلاً نقدياً
-    const validCustomerId = 
+    // 1. التحقق وضمان أن معرف العميل موجود فعلياً في جدول العملاء بسحابة Supabase
+    // لتجنب خطأ القيود الأجنبية FK Violation نهائياً
+    let validCustomerId: string | null = null;
+    if (
       invoice.customerId && 
       invoice.customerId !== 'CASH' && 
       invoice.customerId !== 'cash' && 
       !invoice.customerId.startsWith('cash-')
-        ? invoice.customerId 
-        : null;
+    ) {
+      try {
+        const { data: custExists } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('id', invoice.customerId)
+          .maybeSingle();
+        if (custExists?.id) {
+          validCustomerId = custExists.id;
+        }
+      } catch {
+        validCustomerId = null;
+      }
+    }
 
     const { error } = await supabase.from('invoices').upsert({
       id: invoice.id,
@@ -370,10 +392,13 @@ export async function upsertInvoiceToSupabase(invoice: Invoice): Promise<boolean
       notes: invoice.notes ? `${invoice.notes}${invoice.paymentMethod ? ` | طريقة الدفع: ${invoice.paymentMethod}` : ''}` : (invoice.paymentMethod ? `طريقة الدفع: ${invoice.paymentMethod}` : ''),
       created_at: new Date().toISOString(),
     });
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase upsertInvoice error:', error);
+      return false;
+    }
     return true;
   } catch (err) {
-    console.warn('Supabase upsertInvoice error:', err);
+    console.error('Supabase upsertInvoice fatal error:', err);
     return false;
   }
 }
@@ -412,15 +437,35 @@ export async function recordInventoryLogToSupabase(log: {
   notes?: string;
 }): Promise<boolean> {
   try {
+    // التحقق من وجود الصنف في جدول products لتفادي أخطاء المفتاح الخارجي
+    let validProductId: string | null = null;
+    if (log.productId) {
+      try {
+        const { data: prodExists } = await supabase
+          .from('products')
+          .select('id')
+          .eq('id', log.productId)
+          .maybeSingle();
+        if (prodExists?.id) {
+          validProductId = prodExists.id;
+        }
+      } catch {
+        validProductId = null;
+      }
+    }
+
     const { error } = await supabase.from('inventory_logs').insert({
-      product_id: log.productId || null,
+      product_id: validProductId,
       change_type: log.changeType,
       quantity: log.quantity,
       reference_id: log.referenceId || null,
       notes: log.notes || null,
       created_at: new Date().toISOString(),
     });
-    if (error) throw error;
+    if (error) {
+      console.warn('Supabase recordInventoryLog warning:', error.message);
+      return false;
+    }
     return true;
   } catch (err) {
     console.warn('Supabase recordInventoryLog error:', err);
@@ -446,9 +491,26 @@ export async function fetchInventoryLogsFromSupabase(): Promise<any[]> {
 // أوامر الشراء
 export async function upsertPurchaseOrderToSupabase(po: PurchaseOrder): Promise<boolean> {
   try {
+    // التحقق من وجود المورد في جدول suppliers لتفادي أخطاء المفتاح الخارجي
+    let validSupplierId: string | null = null;
+    if (po.supplierId) {
+      try {
+        const { data: suppExists } = await supabase
+          .from('suppliers')
+          .select('id')
+          .eq('id', po.supplierId)
+          .maybeSingle();
+        if (suppExists?.id) {
+          validSupplierId = suppExists.id;
+        }
+      } catch {
+        validSupplierId = null;
+      }
+    }
+
     const { error } = await supabase.from('purchase_orders').upsert({
       id: po.id,
-      supplier_id: po.supplierId,
+      supplier_id: validSupplierId,
       supplier_name: po.supplierName,
       date: po.date,
       status: po.status,
@@ -457,7 +519,10 @@ export async function upsertPurchaseOrderToSupabase(po: PurchaseOrder): Promise<
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase upsertPurchaseOrder error:', error);
+      return false;
+    }
     return true;
   } catch (err) {
     console.warn('Supabase upsertPurchaseOrder error:', err);

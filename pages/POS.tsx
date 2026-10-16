@@ -230,7 +230,9 @@ const POS: React.FC<POSProps> = ({
     const isSale = currentScreen === 'sale';
 
     const generatedInvoice: Invoice = {
-      id: isSale ? `INV-${Date.now().toString().slice(-6)}` : `QUO-${Date.now().toString().slice(-6)}`,
+      id: isSale 
+        ? `INV-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}` 
+        : `QUO-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
       customerId: finalCustomerId,
       customerName: finalCustomerName,
       date: sudanDate,
