@@ -31,7 +31,8 @@ const Invoices: React.FC<InvoicesProps> = ({
 
   if (view === 'view' && selectedInvoice) {
     return (
-      <div className="space-y-6 flex flex-col h-full animate-fade-in">
+      <>
+        <div className="space-y-6 flex flex-col h-full animate-fade-in no-print">
         <div className="flex justify-between items-center shrink-0">
           <h2 className="text-xl md:text-2xl font-bold text-gray-800">تفاصيل الفاتورة #{selectedInvoice.id}</h2>
           <button 
@@ -151,18 +152,19 @@ const Invoices: React.FC<InvoicesProps> = ({
             </button>
           </div>
         </div>
-
-        <OfficialInvoiceModal
-          invoice={selectedInvoice}
-          isOpen={showOfficialModal}
-          onClose={() => setShowOfficialModal(false)}
-        />
       </div>
-    );
-  }
+
+      <OfficialInvoiceModal
+        invoice={selectedInvoice}
+        isOpen={showOfficialModal}
+        onClose={() => setShowOfficialModal(false)}
+      />
+    </>
+  );
+}
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in no-print">
       {/* Header and Bulk Delete Option */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>

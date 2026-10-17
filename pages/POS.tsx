@@ -300,7 +300,7 @@ const POS: React.FC<POSProps> = ({
   // =========================================================================
   if (currentScreen === 'mode-selection') {
     return (
-      <div className="min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center p-4 sm:p-8 bg-slate-50 animate-fade-in">
+      <div className="min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center p-4 sm:p-8 bg-slate-50 animate-fade-in no-print">
         
         {/* Header / Info */}
         <div className="text-center max-w-xl mb-8">
@@ -418,7 +418,8 @@ const POS: React.FC<POSProps> = ({
   const isSaleMode = currentScreen === 'sale';
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 bg-slate-50 min-h-[calc(100vh-4rem)] animate-fade-in pb-16">
+    <>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 bg-slate-50 min-h-[calc(100vh-4rem)] animate-fade-in pb-16 no-print">
       
       {/* Top Navigation Bar: Back Button & Mode Indicator */}
       <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
@@ -752,6 +753,7 @@ const POS: React.FC<POSProps> = ({
           </button>
         </div>
       </div>
+      </div>
 
       {/* Official Printable Invoice Modal */}
       <OfficialInvoiceModal
@@ -768,7 +770,7 @@ const POS: React.FC<POSProps> = ({
         }}
         onConvertToFinalSale={isModalProforma ? handleConvertToFinalSale : undefined}
       />
-    </div>
+    </>
   );
 };
 

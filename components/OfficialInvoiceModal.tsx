@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Invoice } from '../types';
 import { Printer, X, Plus, CheckCircle2 } from './Icons';
 import { tafqeet } from '../utils/tafqeet';
@@ -40,7 +41,7 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
   // Multi-page A4 detection: when items count is high, notify user in UI that it will print cleanly across multiple pages
   const isMultiPageEstimated = items.length > 7;
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-start z-50 p-2 sm:p-4 overflow-y-auto invoice-modal-overlay">
       {/* Embedded Print & A4 Multi-page Pagination Styles */}
       <style>{`
@@ -60,12 +61,9 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
             width: 100% !important;
             font-size: 11pt !important;
           }
-          #root, #root > div, .overflow-hidden, .overflow-y-auto, .h-screen, .h-full {
-            overflow: visible !important;
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            position: static !important;
+          /* CRITICAL: Hide the entire app UI and background elements when printing */
+          #root, body > #root {
+            display: none !important;
           }
           .no-print, header, aside, .sidebar {
             display: none !important;
@@ -503,6 +501,8 @@ const OfficialInvoiceModal: React.FC<OfficialInvoiceModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default OfficialInvoiceModal;

@@ -631,7 +631,7 @@ const App: React.FC = () => {
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8 scroll-smooth">
           <div className="max-w-7xl mx-auto min-h-full">
-            <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap justify-between items-center gap-4 border border-gray-100">
+            <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap justify-between items-center gap-4 border border-gray-100 no-print">
               <div className="flex items-center gap-4">
                 <img src="/Logo.png" alt="ابن السنوسي" className="w-16 h-16 object-contain hidden sm:block" />
                 <div>
