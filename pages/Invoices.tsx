@@ -49,11 +49,11 @@ const Invoices: React.FC<InvoicesProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
           <div className="flex flex-col md:flex-row justify-between border-b border-slate-200 pb-6 mb-6">
             <div>
-              <div className="flex items-center gap-2 font-bold text-xl text-blue-950 mb-1">
-                <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
+              <div className="flex items-center gap-2 font-bold text-xl mb-1" style={{ color: '#281F6E' }}>
+                <span className="w-2.5 h-6 rounded-full" style={{ backgroundColor: '#FEED01', border: '1px solid #DEA61B' }}></span>
                 ابن السنوسي للحلول المتكاملة
               </div>
-              <p className="text-amber-600 font-semibold text-xs mt-0.5">حلول الطاقة الشمسية والأنظمة الكهربائية</p>
+              <p className="font-bold text-xs mt-0.5" style={{ color: '#281F6E' }}>حلول الطاقة الشمسية والأنظمة الكهربائية</p>
             </div>
             <div className="text-right mt-4 md:mt-0">
               <p className="text-slate-400 text-xs mb-1">التاريخ والوقت</p>
@@ -77,9 +77,9 @@ const Invoices: React.FC<InvoicesProps> = ({
             )}
           </div>
 
-          <div className="overflow-x-auto mb-8 rounded-xl border border-blue-200">
+          <div className="overflow-x-auto mb-8 rounded-xl" style={{ border: '1.5px solid #281F6E' }}>
             <table className="w-full text-right text-sm">
-              <thead className="bg-blue-900 text-white border-b-2 border-amber-500">
+              <thead className="text-white font-bold" style={{ backgroundColor: '#281F6E', borderBottom: '3px solid #FEED01' }}>
                 <tr>
                   <th className="py-3 px-4 font-bold text-white">المنتج</th>
                   <th className="py-3 px-4 font-bold text-center text-white">الكمية</th>
@@ -93,14 +93,14 @@ const Invoices: React.FC<InvoicesProps> = ({
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-900">{item.productName}</div>
                       {item.serialNumbers && item.serialNumbers.length > 0 && (
-                        <div className="text-xs text-blue-800 font-mono mt-1">
+                        <div className="text-xs font-mono mt-1 font-bold" style={{ color: '#281F6E' }}>
                           سيريال: {item.serialNumbers.join(', ')}
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold font-mono text-blue-950">{item.quantity}</td>
+                    <td className="py-3 px-4 text-center font-bold font-mono" style={{ backgroundColor: 'rgba(254, 237, 1, 0.15)', color: '#281F6E' }}>{item.quantity}</td>
                     <td className="py-3 px-4 font-mono">{item.price.toLocaleString()} ج.س</td>
-                    <td className="py-3 px-4 font-bold font-mono text-blue-950">{item.total.toLocaleString()} ج.س</td>
+                    <td className="py-3 px-4 font-bold font-mono" style={{ color: '#281F6E' }}>{item.total.toLocaleString()} ج.س</td>
                   </tr>
                 ))}
               </tbody>
@@ -125,16 +125,16 @@ const Invoices: React.FC<InvoicesProps> = ({
                   <span className="font-mono font-bold">+{selectedInvoice.tax.toLocaleString()} ج.س</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-bold text-white bg-blue-900 p-2.5 rounded-lg border border-amber-400 mt-2">
-                <span className="text-amber-300">الإجمالي النهائي:</span>
-                <span className="font-mono font-black">{selectedInvoice.total.toLocaleString()} ج.س</span>
+              <div className="flex justify-between text-base font-black text-white p-2.5 rounded-lg mt-2 shadow-xs" style={{ backgroundColor: '#281F6E', border: '2px solid #FEED01' }}>
+                <span style={{ color: '#FEED01' }}>الإجمالي النهائي:</span>
+                <span className="font-mono font-black text-white">{selectedInvoice.total.toLocaleString()} ج.س</span>
               </div>
               <div className="flex justify-between text-slate-800 font-bold border-t border-blue-200 pt-2 text-xs">
                 <span>المبلغ المدفوع:</span>
-                <span className="font-mono text-blue-950">{selectedInvoice.paidAmount.toLocaleString()} ج.س</span>
+                <span className="font-mono font-bold" style={{ color: '#281F6E' }}>{selectedInvoice.paidAmount.toLocaleString()} ج.س</span>
               </div>
               {selectedInvoice.total > selectedInvoice.paidAmount && (
-                <div className="flex justify-between text-amber-950 font-bold text-xs bg-amber-50 p-2 rounded border border-amber-300">
+                <div className="flex justify-between font-black text-xs p-2 rounded" style={{ backgroundColor: 'rgba(254, 237, 1, 0.2)', border: '1px solid #DEA61B', color: '#281F6E' }}>
                   <span>المتبقي ذمم:</span>
                   <span className="font-mono">{(selectedInvoice.total - selectedInvoice.paidAmount).toLocaleString()} ج.س</span>
                 </div>
@@ -145,9 +145,10 @@ const Invoices: React.FC<InvoicesProps> = ({
           <div className="mt-8 flex justify-end gap-3 border-t border-slate-200 pt-4">
             <button
               onClick={() => setShowOfficialModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-900 to-blue-950 hover:from-blue-800 hover:to-blue-900 text-white px-6 py-2.5 rounded-xl transition-all font-bold shadow-md cursor-pointer text-sm border border-blue-900"
+              className="flex items-center gap-2 text-white px-6 py-2.5 rounded-xl transition-all font-bold shadow-md cursor-pointer text-sm hover:brightness-110 active:scale-95"
+              style={{ backgroundColor: '#281F6E', border: '1px solid #FEED01' }}
             >
-              <Printer className="w-4 h-4 text-amber-400" />
+              <Printer className="w-4 h-4" style={{ color: '#FEED01' }} />
               <span>طباعة الفاتورة الرسمية A4</span>
             </button>
           </div>
