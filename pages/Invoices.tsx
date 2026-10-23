@@ -49,58 +49,58 @@ const Invoices: React.FC<InvoicesProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
           <div className="flex flex-col md:flex-row justify-between border-b border-slate-200 pb-6 mb-6">
             <div>
-              <div className="flex items-center gap-2 font-bold text-xl text-slate-900 mb-1">
-                <span className="w-2 h-6 bg-slate-700 rounded-full"></span>
+              <div className="flex items-center gap-2 font-bold text-xl text-blue-950 mb-1">
+                <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
                 ابن السنوسي للحلول المتكاملة
               </div>
-              <p className="text-slate-500 text-sm">فاتورة ضريبية رسمية</p>
+              <p className="text-amber-600 font-semibold text-xs mt-0.5">حلول الطاقة الشمسية والأنظمة الكهربائية</p>
             </div>
             <div className="text-right mt-4 md:mt-0">
               <p className="text-slate-400 text-xs mb-1">التاريخ والوقت</p>
               <p className="font-bold text-slate-800 font-mono">{selectedInvoice.date} {selectedInvoice.time && `- ${selectedInvoice.time}`}</p>
               {selectedInvoice.employeeName && (
-                <p className="text-slate-500 text-xs mt-1.5">الموظف: {selectedInvoice.employeeName}</p>
+                <p className="text-blue-900 text-xs mt-1.5 font-medium">الموظف: {selectedInvoice.employeeName}</p>
               )}
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between mb-8 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs sm:text-sm">
+          <div className="flex flex-col md:flex-row justify-between mb-8 bg-blue-50/40 p-4 rounded-xl border border-blue-100 text-xs sm:text-sm">
             <div>
-              <p className="text-slate-500 text-xs mb-1">بيانات العميل</p>
-              <p className="font-bold text-slate-900 text-base">{selectedInvoice.customerName || 'عميل نقدي'}</p>
+              <p className="text-blue-900/70 text-xs mb-1 font-bold">بيانات العميل</p>
+              <p className="font-black text-blue-950 text-base">{selectedInvoice.customerName || 'عميل نقدي'}</p>
             </div>
             {selectedInvoice.employeeName && (
               <div className="mt-4 md:mt-0">
-                <p className="text-slate-500 text-xs mb-1">الموظف المسؤول (الكاشير)</p>
+                <p className="text-blue-900/70 text-xs mb-1 font-bold">الموظف المسؤول (الكاشير)</p>
                 <p className="font-bold text-slate-900 text-base">{selectedInvoice.employeeName}</p>
               </div>
             )}
           </div>
 
-          <div className="overflow-x-auto mb-8 rounded-xl border border-slate-200">
+          <div className="overflow-x-auto mb-8 rounded-xl border border-blue-200">
             <table className="w-full text-right text-sm">
-              <thead className="bg-slate-100 text-slate-800 border-b border-slate-200">
+              <thead className="bg-blue-900 text-white border-b-2 border-amber-500">
                 <tr>
-                  <th className="py-3 px-4 font-bold">المنتج</th>
-                  <th className="py-3 px-4 font-bold text-center">الكمية</th>
-                  <th className="py-3 px-4 font-bold">سعر الوحدة</th>
-                  <th className="py-3 px-4 font-bold">الإجمالي</th>
+                  <th className="py-3 px-4 font-bold text-white">المنتج</th>
+                  <th className="py-3 px-4 font-bold text-center text-white">الكمية</th>
+                  <th className="py-3 px-4 font-bold text-white">سعر الوحدة</th>
+                  <th className="py-3 px-4 font-bold text-white">الإجمالي</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-blue-100">
                 {selectedInvoice.items.map((item, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/25'}>
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-900">{item.productName}</div>
                       {item.serialNumbers && item.serialNumbers.length > 0 && (
-                        <div className="text-xs text-slate-500 font-mono mt-1">
+                        <div className="text-xs text-blue-800 font-mono mt-1">
                           سيريال: {item.serialNumbers.join(', ')}
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold font-mono">{item.quantity}</td>
+                    <td className="py-3 px-4 text-center font-bold font-mono text-blue-950">{item.quantity}</td>
                     <td className="py-3 px-4 font-mono">{item.price.toLocaleString()} ج.س</td>
-                    <td className="py-3 px-4 font-bold font-mono text-slate-900">{item.total.toLocaleString()} ج.س</td>
+                    <td className="py-3 px-4 font-bold font-mono text-blue-950">{item.total.toLocaleString()} ج.س</td>
                   </tr>
                 ))}
               </tbody>
@@ -108,13 +108,13 @@ const Invoices: React.FC<InvoicesProps> = ({
           </div>
 
           <div className="border-t border-slate-200 pt-6 flex justify-end">
-            <div className="w-full md:w-80 space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div className="w-full md:w-80 space-y-2 text-sm bg-blue-50/30 p-4 rounded-xl border border-blue-200">
               <div className="flex justify-between text-slate-600 text-xs">
                 <span>المجموع الفرعي:</span>
-                <span className="font-mono font-bold text-slate-800">{selectedInvoice.subtotal.toLocaleString()} ج.س</span>
+                <span className="font-mono font-bold text-blue-950">{selectedInvoice.subtotal.toLocaleString()} ج.س</span>
               </div>
               {selectedInvoice.discount > 0 && (
-                <div className="flex justify-between text-slate-700 text-xs font-medium">
+                <div className="flex justify-between text-rose-700 text-xs font-medium">
                   <span>الخصم الممنوح:</span>
                   <span className="font-mono font-bold">-{selectedInvoice.discount.toLocaleString()} ج.س</span>
                 </div>
@@ -125,16 +125,16 @@ const Invoices: React.FC<InvoicesProps> = ({
                   <span className="font-mono font-bold">+{selectedInvoice.tax.toLocaleString()} ج.س</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-bold text-slate-900 border-t border-slate-200 pt-2">
-                <span>الإجمالي النهائي:</span>
-                <span className="font-mono">{selectedInvoice.total.toLocaleString()} ج.س</span>
+              <div className="flex justify-between text-base font-bold text-white bg-blue-900 p-2.5 rounded-lg border border-amber-400 mt-2">
+                <span className="text-amber-300">الإجمالي النهائي:</span>
+                <span className="font-mono font-black">{selectedInvoice.total.toLocaleString()} ج.س</span>
               </div>
-              <div className="flex justify-between text-slate-800 font-bold border-t border-slate-200 pt-2 text-xs">
+              <div className="flex justify-between text-slate-800 font-bold border-t border-blue-200 pt-2 text-xs">
                 <span>المبلغ المدفوع:</span>
-                <span className="font-mono">{selectedInvoice.paidAmount.toLocaleString()} ج.س</span>
+                <span className="font-mono text-blue-950">{selectedInvoice.paidAmount.toLocaleString()} ج.س</span>
               </div>
               {selectedInvoice.total > selectedInvoice.paidAmount && (
-                <div className="flex justify-between text-slate-900 font-bold text-xs bg-white p-2 rounded border border-slate-200">
+                <div className="flex justify-between text-amber-950 font-bold text-xs bg-amber-50 p-2 rounded border border-amber-300">
                   <span>المتبقي ذمم:</span>
                   <span className="font-mono">{(selectedInvoice.total - selectedInvoice.paidAmount).toLocaleString()} ج.س</span>
                 </div>
@@ -145,10 +145,10 @@ const Invoices: React.FC<InvoicesProps> = ({
           <div className="mt-8 flex justify-end gap-3 border-t border-slate-200 pt-4">
             <button
               onClick={() => setShowOfficialModal(true)}
-              className="flex items-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-xl hover:bg-slate-700 transition-colors font-bold shadow-md cursor-pointer text-sm"
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-900 to-blue-950 hover:from-blue-800 hover:to-blue-900 text-white px-6 py-2.5 rounded-xl transition-all font-bold shadow-md cursor-pointer text-sm border border-blue-900"
             >
-              <Printer className="w-4 h-4" />
-              <span>طباعة الفاتورة A4 (أبيض ورمادي)</span>
+              <Printer className="w-4 h-4 text-amber-400" />
+              <span>طباعة الفاتورة الرسمية A4</span>
             </button>
           </div>
         </div>
